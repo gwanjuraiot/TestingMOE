@@ -1,0 +1,1 @@
+CEPacketResponse offlineResponse = CEOfflineServerMock.Instance.HandlePacket(ACHDEDMHAPE);
