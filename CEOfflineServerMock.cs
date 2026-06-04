@@ -97,10 +97,10 @@ public class CEOfflineServerMock
             case ePacketType.MailBoxInfo:
                 return new CEPacketResponseMailBoxInfo { status_code = "success", mailbox = new Dictionary<long, CEPacketElementMailBox>() };
 
-            case ePacketType.FriendList:
+            case ePacketType.FriendInfo:
                 return new CEPacketResponseFriendList { status_code = "success", friend = new Dictionary<long, CEPacketElementFriendList>() };
 
-            case ePacketType.DailyAchievement:
+            case ePacketType.AchievementDailyTrigger:
                 return new CEPacketResponseDailyAchievement { status_code = "success", daily_achievement = new Dictionary<long, CEPacketElementConditionDaily>() };
 
             case ePacketType.MissionStart:
@@ -149,7 +149,7 @@ public class CEOfflineServerMock
             // 슈트 정보 매핑
             suit = GetMockSuits(),
             // 편성 팀 정보 매핑
-            mission_team = GetMockTeam(),
+            mission_team = new Dictionary<long, CEPacketElementTeam> { { 1L, GetMockTeam() } },
             // 스테이지 클리어 정보 매핑
             mission = GetMockMissions()
         };
@@ -237,32 +237,27 @@ public class CEOfflineServerMock
 
     private CEPacketResponseMissionStart HandleMissionStart(CEPacket packet)
     {
-        // 미션 시작 패킷을 분석하여 스테이지 진입 허용
-        var startPacket = packet as CEPacketMissionStart;
+        int selectedMissionId = CEInstancePlayerI<CEInstancePlayerMission>.instance.GetSelectedMissionIdx();
+        int selectedChapterId = CEInstancePlayerI<CEInstancePlayerMission>.instance.GetSelectedChapterIdx();
         var response = new CEPacketResponseMissionStart
         {
             status_code = "success",
-            chapter_id = 1,
-            mission_id = (startPacket != null) ? startPacket.mission_id : 1
+            chapter_id = selectedChapterId,
+            mission_id = selectedMissionId
         };
         return response;
     }
 
     private CEPacketResponseMissionEnd HandleMissionEnd(CEPacket packet)
     {
-        // 전투 성공 패킷이 수신되면 로컬 JSON 세이브 데이터를 업데이트하고 저장
-        var endPacket = packet as CEPacketMissionEnd;
-        if (endPacket != null)
+        int finishedMissionId = CEInstancePlayerI<CEInstancePlayerMission>.instance.GetSelectedMissionIdx();
+        if (!CurrentSave.ClearedMissions.Contains(finishedMissionId))
         {
-            int finishedMissionId = endPacket.mission_id;
-            if (!CurrentSave.ClearedMissions.Contains(finishedMissionId))
-            {
-                CurrentSave.ClearedMissions.Add(finishedMissionId);
-            }
-            CurrentSave.Gold += 1000; // 보상 골드 임의 추가
-            CurrentSave.Gems += 10;  // 보상 젬 임의 추가
-            SaveData();
+            CurrentSave.ClearedMissions.Add(finishedMissionId);
         }
+        CurrentSave.Gold += 1000; // 보상 골드 임의 추가
+        CurrentSave.Gems += 10;  // 보상 젬 임의 추가
+        SaveData();
 
         var response = new CEPacketResponseMissionEnd
         {
